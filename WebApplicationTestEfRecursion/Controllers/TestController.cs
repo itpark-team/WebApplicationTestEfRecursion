@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebApplicationTestEfRecursion.Dtos;
 
 namespace WebApplicationTestEfRecursion.Controllers;
 
 [ApiController]
-[Route("/test")]
+[Route("test/")]
 public class TestController : ControllerBase
 {
     private AlexTestJwtDbContext db;
@@ -14,24 +15,42 @@ public class TestController : ControllerBase
         this.db = db;
     }
 
-    [HttpGet]
-    public List<WorkerDto> Get()
+    [HttpGet("articles")]
+    public List<ArticleFlatResponseDto> GetArticles()
     {
-        List<Worker> workers = db.Workers.Include(worker => worker.Positions).ToList();
-
-        List<WorkerDto> workerDtos = new List<WorkerDto>();
-
-        workers.ForEach(worker =>
-        {
-            WorkerDto workerDto = new WorkerDto()
+        List<ArticleFlatResponseDto> articles = db.Articles.Select(
+            article => new ArticleFlatResponseDto()
             {
-                Id = worker.Id,
-                Name = worker.Name,
-                Positions = new List<Position>(worker.Positions)
-            };
-            workerDtos.Add(workerDto);
-        });
+                Id = article.Id,
+                Title = article.Title,
+                Content = article.Content,
+                AuthorId = article.AuthorId,
+                AuthorName = article.Author.Name,
+                AuthorAge = article.Author.Age
+            }).ToList();
 
-        return workerDtos;
+        return articles;
+    }
+
+    [HttpGet("authors")]
+    public List<AuthorSimpleResponseDto> GetAuthors()
+    {
+        List<AuthorSimpleResponseDto> authors = db.Authors.Select(
+            author => new AuthorSimpleResponseDto()
+            {
+                Id = author.Id,
+                Name = author.Name,
+                Age = author.Age,
+                Articles = author.Articles.Select(
+                    article => new ArticleSimpleResponseDto()
+                    {
+                        Id = article.Id,
+                        Title = article.Title,
+                        Content = article.Content
+                    }
+                ).ToList()
+            }).ToList();
+
+        return authors;
     }
 }
